@@ -1,102 +1,98 @@
-> [!IMPORTANT]
-> ## Project Archival
-> 
-> **This project is no longer actively maintained and this repository has been archived.**
->
-> You can read the full announcement [here](https://github.com/aiko-chan-ai/discord.js-selfbot-v13/discussions/1743)
+# Discord Message Scraper
 
-<div align="center">
-  <br />
-  <p>
-    <a href="https://discord.js.org"><img src="https://discord.js.org/static/logo.svg" width="546" alt="discord.js" /></a>
-  </p>
-</div>
+Scrapes messages from a specific user in a specific Discord channel. Built on [discord.js-selfbot-v13](https://github.com/aiko-chan-ai/discord.js-selfbot-v13).
 
-> [!CAUTION]
-> **The use of this module under a different name on NPM (or another source besides this Github) is not associated with this library.**
-> **When using these libraries, you accept the risk of exposing your Discord Token.**
+## Prerequisites
 
-## About
-
-<strong>Welcome to `discord.js-selfbot-v13@v3.7`, based on `discord.js@13.17` and backport `discord.js@14.21.0`</strong>
-
-- discord.js-selfbot-v13 is a [Node.js](https://nodejs.org) module that allows user accounts to interact with the Discord API v9.
-
-
-<div align="center">
-  <p>
-    <a href="https://www.npmjs.com/package/discord.js-selfbot-v13"><img src="https://img.shields.io/npm/v/discord.js-selfbot-v13.svg" alt="npm version" /></a>
-    <a href="https://www.npmjs.com/package/discord.js-selfbot-v13"><img src="https://img.shields.io/npm/dt/discord.js-selfbot-v13.svg" alt="npm downloads" /></a>
-    <a href="https://github.com/aiko-chan-ai/discord.js-selfbot-v13/actions"><img src="https://github.com/aiko-chan-ai/discord.js-selfbot-v13/actions/workflows/lint.yml/badge.svg" alt="Tests status" /></a>
-  </p>
-</div>
-
-> [!WARNING]
-> **I don't take any responsibility for blocked Discord accounts that used this module.**
-
-> [!CAUTION]
-> **Using this on a user account is prohibited by the [Discord TOS](https://discord.com/terms) and can lead to the account block.**
-
-### <strong>[Document Website](https://discordjs-self-v13.netlify.app/)</strong>
-
-### <strong>[Example Code](https://github.com/aiko-chan-ai/discord.js-selfbot-v13/tree/main/examples)</strong>
-
-## Features (User)
-- [x] Message
-- [x] ClientUser: Status, Activity, RemoteAuth, etc.
-- [X] Guild: Fetch Members, Join / Leave, Top emojis, etc.
-- [X] Interactions: Slash Commands, Buttons, Menu, Modal.
-- [X] Captcha & TOTP Handler
-- [X] Documentation
-- [x] Voice & Video
-- [ ] Everything
+- **Node.js 20.18.0** or newer
 
 ## Installation
 
-> [!NOTE]
-> **Node.js 20.18.0 or newer is required**
-
-```sh-session
-npm install discord.js-selfbot-v13@latest
+```sh
+npm install
 ```
 
-## Example
+## Setup & Run
 
-```js
-const { Client } = require('discord.js-selfbot-v13');
-const client = new Client();
+Run the setup script — it will prompt you for your IDs and optionally start the scraper:
 
-client.on('ready', async () => {
-  console.log(`${client.user.username} is ready!`);
-})
-
-client.login('token');
+```sh
+./run.sh
 ```
 
-## Get Token ?
+You will be asked for:
 
-- Based: [findByProps](https://discord.com/channels/603970300668805120/1085682686607249478/1085682686607249478)
+| Field | Description | How to get it |
+|---|---|---|
+| **Discord Token** | Your Discord account token | See [Get Token](#get-token) below |
+| **Discord User ID** | Your own Discord user ID | Right-click your name → Copy User ID |
+| **Discord Server ID** | The server containing the channel | Right-click server icon → Copy Server ID |
+| **Channel ID** | The channel to scrape | Right-click channel → Copy Channel ID |
+| **Target User ID** | The user whose messages to scrape | Right-click their name → Copy User ID |
 
-<strong>Run code (Discord Console - [Ctrl + Shift + I])</strong>
+> **Note:** Enable **Developer Mode** in Discord (Settings → Advanced → Developer Mode) to see the "Copy ID" options.
+
+These values are saved to a `.env` file (git-ignored) so you only need to enter them once.
+
+### Run directly (without the setup prompts)
+
+If your `.env` is already configured:
+
+```sh
+node bot.js
+```
+
+## Output
+
+Messages are saved to `scraped_messages.json` with the following format:
+
+```json
+[
+  {
+    "date": "04/02/2023",
+    "time": "02:20:41",
+    "content": "Message text here",
+    "username": "user123",
+    "displayName": "User",
+    "attachments": ["https://cdn.discordapp.com/..."]
+  }
+]
+```
+
+## .env format
+
+```env
+DISCORD_TOKEN=your_token_here
+DISCORD_USER_ID=123456789
+DISCORD_SERVER_ID=123456789
+CHANNEL_ID=123456789
+TARGET_USER_ID=123456789
+```
+
+## Get Token
+
+1. Open Discord in a browser (or desktop app)
+2. Press `Ctrl+Shift+I` (or `Cmd+Opt+I` on Mac) to open DevTools
+3. Go to the **Console** tab
+4. Paste the following and press Enter:
 
 ```js
 window.webpackChunkdiscord_app.push([
-	[Symbol()],
-	{},
-	req => {
-		if (!req.c) return;
-		for (let m of Object.values(req.c)) {
-			try {
-				if (!m.exports || m.exports === window) continue;
-				if (m.exports?.getToken) return copy(m.exports.getToken());
-				for (let ex in m.exports) {
-					if (m.exports?.[ex]?.getToken && m.exports[ex][Symbol.toStringTag] !== 'IntlMessagesProxy') return copy(m.exports[ex].getToken());
-				}
-			} catch {}
-		}
-	},
+  [Symbol()],
+  {},
+  req => {
+    if (!req.c) return;
+    for (let m of Object.values(req.c)) {
+      try {
+        if (!m.exports || m.exports === window) continue;
+        if (m.exports?.getToken) return copy(m.exports.getToken());
+        for (let ex in m.exports) {
+          if (m.exports?.[ex]?.getToken && m.exports[ex][Symbol.toStringTag] !== 'IntlMessagesProxy') return copy(m.exports[ex].getToken());
+        }
+      } catch {}
+    }
+  },
 ]);
-
 window.webpackChunkdiscord_app.pop();
 console.log('%cWorked!', 'font-size: 50px');
 console.log(`%cYou now have your token in the clipboard!`, 'font-size: 16px');
@@ -112,13 +108,6 @@ console.log(`%cYou now have your token in the clipboard!`, 'font-size: 16px');
 Github Discussion: [Here](https://github.com/aiko-chan-ai/discord.js-selfbot-v13/discussions)
 
 ## Credits
+
+- [discord.js-selfbot-v13](https://github.com/aiko-chan-ai/discord.js-selfbot-v13)
 - [Discord.js](https://github.com/discordjs/discord.js)
-
-## <strong>Other project(s)
-
-- 📘 [***aiko-chan-ai/DiscordBotClient***](https://github.com/aiko-chan-ai/DiscordBotClient) <br/>
-  A patched version of discord, with bot login support
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=aiko-chan-ai/discord.js-selfbot-v13&type=Date)](https://star-history.com/#aiko-chan-ai/discord.js-selfbot-v13&Date)
