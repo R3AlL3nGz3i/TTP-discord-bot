@@ -50,6 +50,8 @@ function parseCodeMapping(codeContent) {
 // Analyze a single message for trading signals
 function analyzeMessage(msg, tickerMap) {
   const content = msg.content;
+  const referenceMessageContent = msg.replyTo?.content || null;
+  const referenceMessageId = msg.replyTo?.messageId || null;
   
   if (!content || content.trim() === '') return null;
   
@@ -168,6 +170,10 @@ function analyzeMessage(msg, tickerMap) {
     channel: msg.channelName || 'Unknown',
     channelId: msg.channelId || 'Unknown',
     rawContent: content,
+    referenceMessage: {
+      id: referenceMessageId,
+      content: referenceMessageContent,
+    },
     action: action,
     actionDetails: actionKeywords,
     tickers: detectedTickers,
@@ -248,6 +254,7 @@ function main() {
             spread: signal.spreadDetails,
             option: signal.optionDetails,
             price: signal.priceInfo,
+            referenceMessage: signal.referenceMessage,
             raw: signal.rawContent
           });
         }
@@ -267,6 +274,7 @@ function main() {
           spread: signal.spreadDetails,
           option: signal.optionDetails,
           price: signal.priceInfo,
+          referenceMessage: signal.referenceMessage,
           raw: signal.rawContent
         });
       }
@@ -335,6 +343,9 @@ function main() {
     }
     if (signal.priceInfo) {
       report += `- **Price Info**: ${JSON.stringify(signal.priceInfo)}\n`;
+    }
+    if (signal.referenceMessage?.content) {
+      report += `- **Reply To**: ${signal.referenceMessage.content}\n`;
     }
     report += `- **Raw**: ${signal.rawContent}\n`;
     report += `\n`;

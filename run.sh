@@ -56,4 +56,6 @@ run=${run:-y}
 if [ "$run" = "y" ] || [ "$run" = "Y" ]; then
   echo ""
   node bot.js
+  node analyze.js
+  node upload_sheets.js
 fi

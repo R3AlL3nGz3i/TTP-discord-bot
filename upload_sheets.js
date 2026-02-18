@@ -59,7 +59,8 @@ function flattenTradeData(tradeSummary) {
     'Upper Strike',
     'Spread Type',
     'Price',
-    'Raw Content'
+    'Raw Content',
+    'Reference Message'
   ]);
 
   for (const [ticker, trades] of Object.entries(tradeSummary)) {
@@ -78,7 +79,8 @@ function flattenTradeData(tradeSummary) {
         trade.spread ? trade.spread.upperStrike : '',
         trade.spread ? trade.spread.type : (trade.option ? trade.option.type : ''),
         trade.spread ? trade.spread.price : (trade.option ? trade.option.price : (trade.price ? JSON.stringify(trade.price) : '')),
-        trade.raw.substring(0, 500) // Limit raw content length
+        trade.raw.substring(0, 500), // Limit raw content length
+        trade.referenceMessage?.content ? trade.referenceMessage.content.substring(0, 500) : ''
       ]);
     }
   }
