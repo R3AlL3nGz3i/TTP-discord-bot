@@ -16,18 +16,13 @@ const channelIds = Object.entries(process.env)
   .sort(([a], [b]) => a.localeCompare(b))
   .map(([key, val]) => ({ label: key, id: val }));
 
-const targetUsers = Object.entries(process.env)
-  .filter(([key, val]) => key.startsWith('TARGET_USER_') && val)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([key, val]) => ({ label: key, id: val }));
-
-if (!TOKEN || channelIds.length === 0 || targetUsers.length === 0) {
-  console.error('Missing required env vars. Need DISCORD_TOKEN, at least one CHANNEL_*, and one TARGET_USER_*.');
+if (!TOKEN || channelIds.length === 0) {
+  console.error('Missing required env vars. Need DISCORD_TOKEN and at least one CHANNEL_*.');
   process.exit(1);
 }
 
-// Scrape a single channel for a single target user
-async function scrapeChannel(channel, targetUserId, startMs, endMs) {
+// Scrape all messages in a channel within the date range
+async function scrapeChannel(channel, startMs, endMs) {
   const scrapedData = [];
   let lastId;
   let totalScanned = 0;
@@ -56,40 +51,38 @@ async function scrapeChannel(channel, targetUserId, startMs, endMs) {
           continue;
         }
 
-        if (msg.author.id === targetUserId) {
-          let referencedMessage = null;
-          if (msg.reference && msg.reference.messageId) {
-            try {
-              const original = await msg.fetchReference();
-              referencedMessage = {
-                messageId: original.id,
-                content: original.content,
-                username: original.author?.username ?? null,
-                displayName: original.author?.globalName || original.author?.username || null,
-                date: original.createdAt.toLocaleDateString('en-GB'),
-                time: original.createdAt.toLocaleTimeString('en-GB', { hour12: false }),
-              };
-            } catch (err) {
-              console.warn(`\n  Could not fetch referenced message ${msg.reference.messageId}: ${err.message}`);
-              referencedMessage = {
-                messageId: msg.reference.messageId,
-                error: err.message,
-              };
-            }
+        let referencedMessage = null;
+        if (msg.reference && msg.reference.messageId) {
+          try {
+            const original = await msg.fetchReference();
+            referencedMessage = {
+              messageId: original.id,
+              content: original.content,
+              username: original.author?.username ?? null,
+              displayName: original.author?.globalName || original.author?.username || null,
+              date: original.createdAt.toLocaleDateString('en-GB'),
+              time: original.createdAt.toLocaleTimeString('en-GB', { hour12: false }),
+            };
+          } catch (err) {
+            console.warn(`\n  Could not fetch referenced message ${msg.reference.messageId}: ${err.message}`);
+            referencedMessage = {
+              messageId: msg.reference.messageId,
+              error: err.message,
+            };
           }
-
-          scrapedData.push({
-            date: msg.createdAt.toLocaleDateString('en-GB'),
-            time: msg.createdAt.toLocaleTimeString('en-GB', { hour12: false }),
-            content: msg.content,
-            username: msg.author.username,
-            displayName: msg.author.globalName || msg.author.username,
-            channelName: channel.name,
-            channelId: channel.id,
-            attachments: msg.attachments.map(a => a.url),
-            replyTo: referencedMessage,
-          });
         }
+
+        scrapedData.push({
+          date: msg.createdAt.toLocaleDateString('en-GB'),
+          time: msg.createdAt.toLocaleTimeString('en-GB', { hour12: false }),
+          content: msg.content,
+          username: msg.author.username,
+          displayName: msg.author.globalName || msg.author.username,
+          channelName: channel.name,
+          channelId: channel.id,
+          attachments: msg.attachments.map(a => a.url),
+          replyTo: referencedMessage,
+        });
       }
 
       if (!lastId) break;
@@ -109,7 +102,6 @@ client.on('ready', async () => {
   console.log(`Logged in as ${client.user.tag} (${client.user.id})`);
   console.log(`Server ID: ${SERVER_ID}`);
   console.log(`Channels: ${channelIds.map(c => `${c.label}=${c.id}`).join(', ')}`);
-  console.log(`Target Users: ${targetUsers.map(u => `${u.label}=${u.id}`).join(', ')}`);
 
   const yesterdayUtc = new Date(Date.now() - 24 * 60 * 60 * 1000)
     .toISOString()
@@ -130,7 +122,7 @@ client.on('ready', async () => {
   const allScrapedData = [];
   let grandTotalScanned = 0;
 
-  // Run every user × every channel
+  // Scrape each channel
   for (const chEntry of channelIds) {
     let channel;
     try {
@@ -140,13 +132,11 @@ client.on('ready', async () => {
       continue;
     }
 
-    for (const userEntry of targetUsers) {
-      console.log(`\n--- Scraping #${channel.name} for ${userEntry.label} (${userEntry.id}) ---`);
-      const { scrapedData, totalScanned } = await scrapeChannel(channel, userEntry.id, startMs, endMs);
-      console.log(`\n  Done: ${scrapedData.length} messages from ${totalScanned} scanned.`);
-      grandTotalScanned += totalScanned;
-      allScrapedData.push(...scrapedData);
-    }
+    console.log(`\n--- Scraping #${channel.name} (all users) ---`);
+    const { scrapedData, totalScanned } = await scrapeChannel(channel, startMs, endMs);
+    console.log(`\n  Done: ${scrapedData.length} messages from ${totalScanned} scanned.`);
+    grandTotalScanned += totalScanned;
+    allScrapedData.push(...scrapedData);
   }
 
   console.log(`\n\nAll done! Found ${allScrapedData.length} messages from ${grandTotalScanned} total scanned.`);
